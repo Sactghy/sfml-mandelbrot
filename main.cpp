@@ -32,8 +32,6 @@ struct Cmplex { double ma, mb;
 
 };
 
-struct Vec3d { double x,y,z;};
-
 void blur( thP pd )
 {
 
@@ -170,8 +168,6 @@ int main()
 
 
     while ( w.isOpen() )  { sf::Event event; if ( t.elapsed() > waittime ) { t.reset();
-
-        std::cout << "." << std::endl;
 
         if ( bpress ) {
 
