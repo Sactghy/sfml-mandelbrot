@@ -8,7 +8,7 @@
 #include <thread>
 
 unsigned char *dt, *dt0;
-double de = 1.0, ad = 0.000000000001, kk = 0.054;
+double de = 1.0, ad = 0.00000000000001, kk = 0.056;
 double xx = 0.0, yy = 0.0, xm = 0.0, ym = 0.0;
 const int xa = 842, ya = 620;
 
@@ -33,9 +33,9 @@ struct Cmplex { double ma, mb;
 };
 
 void blur( thP pd )
-{
+{ int yn1 = ( pd.y1 == 0 ) ? 1 : pd.y1;
 
-  for ( int x = 1; x < xa; x++ ) { for ( int y = pd.y1; y <= pd.y2; y++ ) {
+  for ( int x = 1; x < xa-1; x++ ) { for ( int y = yn1; y < pd.y2; y++ ) {
 
                 int p = ( ( y * xa ) + x ) * 4, pt;
 
@@ -98,7 +98,7 @@ void outPut( thP pd ) {
            double
                    r = (unsigned char) i + tan( m * z.ma / b ) / ( ( sin ( z.mb ) ) ),
                    g = (unsigned char)(double)( !i | i * 16 ) * acos ( m * 0.39 ) ,
-                   b = (unsigned char)((double)i * 12 ) * atan ( z.mb * z.ma / ( 0.00001 * m ) ) ;
+                   b = (unsigned char)((double)i * 8 ) * atan ( z.mb * z.ma / ( 0.00001 * m ) ) * 0.5 ;
 
         dt[p+0] = r;
         dt[p+1] = g;
@@ -191,8 +191,8 @@ int main()
 
         img.update(dt0); w.draw(spr); w.display();
 
-        if ( isin )  { ad -= kk; de = exp(ad); kk += 0.000034; bpress = 1; }
-        if ( isout ) { ad += kk; de = exp(ad); kk -= 0.000034; bpress = 1; }
+        if ( isin )  { ad -= kk; de = exp(ad); kk += 0.000024; bpress = 1; }
+        if ( isout ) { ad += kk; de = exp(ad); kk -= 0.000024; bpress = 1; }
 
         while ( w.pollEvent(event) )
         {
