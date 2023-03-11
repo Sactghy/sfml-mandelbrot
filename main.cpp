@@ -151,7 +151,10 @@ int main()
     for ( int n = 0; n <= xa*ya*4; n += 4 ) { dt0[n+3] = 255; dt[n+3] = 255; }
 
     int bpress = 1, isout = 0, isin = 0, num_threads = std::thread::hardware_concurrency();
-    double px = 0.0, py = 0.0, ppx = 0.0, ppy = 0.0;
+    
+    num_threads = ( num_threads >= 12 ) ? 12 : num_threads;
+    
+    double px = 0.0, py = 0.0, ppx = 0.0, ppy = 0.0, waittime = 3.9 * ( num_threads / 12 );
 
     std::thread *th; std::vector<std::thread*> tcoll;
     struct thP p[num_threads];
@@ -166,7 +169,7 @@ int main()
         if ( i == num_threads - 1 ) p[i].y2 = ya; else p[i].y2 = z; }
 
 
-    while ( w.isOpen() )  { sf::Event event; if ( t.elapsed() > 4.2 ) { t.reset();
+    while ( w.isOpen() )  { sf::Event event; if ( t.elapsed() > waittime ) { t.reset();
 
         std::cout << "." << std::endl;
 
