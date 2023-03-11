@@ -34,10 +34,10 @@ struct Cmplex { double ma, mb;
 
 struct Vec3d { double x,y,z;};
 
-void blur()
+void blur( thP pd )
 {
 
-  for ( int x = 1; x < xa; x++ ) { for ( int y = 1; y < ya; y++ ) {
+  for ( int x = 1; x < xa; x++ ) { for ( int y = pd.y1; y <= pd.y2; y++ ) {
 
                 int p = ( ( y * xa ) + x ) * 4, pt;
 
@@ -151,9 +151,9 @@ int main()
     for ( int n = 0; n <= xa*ya*4; n += 4 ) { dt0[n+3] = 255; dt[n+3] = 255; }
 
     int bpress = 1, isout = 0, isin = 0, num_threads = std::thread::hardware_concurrency();
-    
+
     num_threads = ( num_threads >= 12 ) ? 12 : num_threads;
-    
+
     double px = 0.0, py = 0.0, ppx = 0.0, ppy = 0.0, waittime = 3.9 * ( num_threads / 12 );
 
     std::thread *th; std::vector<std::thread*> tcoll;
@@ -181,7 +181,15 @@ int main()
           for ( int i = 0; i < num_threads; i++ )
           { tcoll[i]->join(); delete tcoll[i]; }
 
-          tcoll.clear(); bpress = 0; blur();
+          tcoll.clear();
+
+          for ( int i = 0; i < num_threads; i++ )
+          { th = new std::thread { blur, p[i] }; tcoll.push_back(th); }
+
+          for ( int i = 0; i < num_threads; i++ )
+          { tcoll[i]->join(); delete tcoll[i]; }
+
+          tcoll.clear(); bpress = 0;
 
         }
 
