@@ -144,7 +144,6 @@ int main()
 
     spr.setTexture(img); spr.setPosition(-1,0);
 
-
     dt = new unsigned char [xa*(ya+2)*4]{}; dt0 = new unsigned char [xa*(ya+2)*4]{}; Timer t;
     for ( int n = 0; n <= xa*ya*4; n += 4 ) { dt0[n+3] = 255; dt[n+3] = 255; }
 
