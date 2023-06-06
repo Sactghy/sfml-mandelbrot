@@ -8,8 +8,8 @@
 #include <thread>
 
 unsigned char *dt, *dt0;
-double de = 1.0, ad = 0.00000000000001, kk = 0.056;
-double xx = 0.0, yy = 0.0, xm = 0.0, ym = 0.0;
+double de = 1.0, ad = 0.00000000000001, kk = 0.0264;
+double xx = 0.0, yy = -100.0, xm = 0.0, ym = 0.0;
 const int xa = 842, ya = 620;
 
 double lerp( double a, double b, double t )
@@ -20,59 +20,17 @@ struct thP { int y1, y2; };
 struct Cmplex { double ma, mb;
 
     void square()
-    {   double tmp = ( ma * ma ) - ( mb * mb);
-        mb = 2.0 * ma * mb;
-        ma = tmp;   }
+    {   double tmp = ( mb * mb ) - ( ma * ma);
+        ma = 2.0 * ma * mb;
+        mb = tmp;   }
 
     double magnitude()
-    {   return sqrt( ( ma * mb ) + ( ma * mb ) );   }
+    {   return ( ma * mb ) + ( ma * mb );   } //sqrt
 
-    void add(Cmplex *c0)
+    void add( Cmplex *c0 )
     {   ma += c0->ma; mb += c0->mb;   }
 
 };
-
-void blur( thP pd )
-{ int yn1 = ( pd.y1 == 0 ) ? 1 : pd.y1;
-
-  for ( int x = 1; x < xa-1; x++ ) { for ( int y = yn1; y < pd.y2; y++ ) {
-
-                int p = ( ( y * xa ) + x ) * 4, pt;
-
-                double r0 = static_cast<double>(dt[p+0]), res{};
-
-                pt = ( ( ( y - 0 ) * xa ) + ( x - 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y - 1 ) * xa ) + ( x - 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y + 1 ) * xa ) + ( x - 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y - 1 ) * xa ) + ( x - 0 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y + 1 ) * xa ) + ( x - 0 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y + 0 ) * xa ) + ( x + 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y - 1 ) * xa ) + ( x + 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y + 1 ) * xa ) + ( x + 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-
-                r0 *= 0.876; res *= 0.123;
-                unsigned char red = r0 + res; if ( red > 148 ) red = 148;
-
-                dt0[p+0] = red; dt0[p+1] = dt[p+1]; dt0[p+2] = dt[p+2]; dt0[p+3] = 255;
-
-                } }
-}
 
 const int xc = xa / 2, yc = ya / 2;
 void outPut( thP pd ) {
@@ -98,13 +56,13 @@ void outPut( thP pd ) {
            double
                    r = (unsigned char) i + tan( m * z.ma / b ) / ( ( sin ( z.mb ) ) ),
                    g = (unsigned char)(double)( !i | i * 16 ) * acos ( m * 0.39 ) ,
-                   b = (unsigned char)((double)i * 8 ) * atan ( z.mb * z.ma / ( 0.00001 * m ) ) * 0.5 ;
+                   b = (unsigned char)(((double)i * 8 ) * atan ( z.mb * z.ma / ( 0.00001 * m ) )) >> 1;
 
-        dt[p+0] = r;
-        dt[p+1] = g;
-        dt[p+2] = b;
+        dt0[p+0] = r;
+        dt0[p+1] = g;
+        dt0[p+2] = b;
 
-        } else { dt[p] = 0; dt[p+1] = 0; dt[p+2] = 0; }
+        } else { dt0[p] = 0; dt0[p+1] = 0; dt0[p+2] = 0; }
 
     } }
 }
@@ -127,15 +85,12 @@ public:
 
 int main()
 {
-    sf::RenderWindow w0(sf::VideoMode::getDesktopMode(), "T"); w0.setVisible(false);
+    auto dm = sf::VideoMode::getDesktopMode();
 
-    sf::Vector2i curpos; sf::Vector2u wsize = w0.getSize();
+    sf::RenderWindow w { sf::VideoMode(xa, ya), "Mandelbrot Set", sf::Style::Close };
 
-    int x0 = ( wsize.x / 2 ) - xa / 2, y0 = ( wsize.y / 2) - ya / 2;
-
-    sf::RenderWindow w(sf::VideoMode(xa,ya),"Mandelbrot Set",sf::Style::Close);
-
-    w.setPosition( {x0, y0} ); w.setSize( {xa, ya} );
+    w.setPosition( { static_cast<int>( ( dm.width / 2 ) - xa / 2 ),
+                     static_cast<int>( ( dm.height/ 2 ) - ya / 2 ) } );
 
 
     sf::Texture img; if ( !img.create(xa, ya) ) std::cout << "Img error!" << std::endl;
@@ -143,6 +98,7 @@ int main()
     sf::Sprite spr; spr.setTextureRect(sf::IntRect(0, 0, xa, ya));
 
     spr.setTexture(img); spr.setPosition(-1,0);
+
 
     dt = new unsigned char [xa*(ya+2)*4]{}; dt0 = new unsigned char [xa*(ya+2)*4]{}; Timer t;
     for ( int n = 0; n <= xa*ya*4; n += 4 ) { dt0[n+3] = 255; dt[n+3] = 255; }
@@ -176,22 +132,14 @@ int main()
           for ( int i = 0; i < num_threads; i++ )
           { tcoll[i]->join(); delete tcoll[i]; }
 
-          tcoll.clear();
-
-          for ( int i = 0; i < num_threads; i++ )
-          { th = new std::thread { blur, p[i] }; tcoll.push_back(th); }
-
-          for ( int i = 0; i < num_threads; i++ )
-          { tcoll[i]->join(); delete tcoll[i]; }
-
           tcoll.clear(); bpress = 0;
 
         }
 
         img.update(dt0); w.draw(spr); w.display();
 
-        if ( isin )  { ad -= kk; de = exp(ad); kk += 0.000024; bpress = 1; }
-        if ( isout ) { ad += kk; de = exp(ad); kk -= 0.000024; bpress = 1; }
+        if ( isin )  { ad -= kk; de = exp(ad); kk -= 0.0000164; bpress = 1; }
+        if ( isout ) { ad += kk; de = exp(ad); kk += 0.0000164; bpress = 1; }
 
         while ( w.pollEvent(event) )
         {
@@ -205,11 +153,13 @@ int main()
 
                 case sf::Keyboard::Space : printf("SPACE\n"); break;
 
-                case sf::Keyboard::Escape : w.close(); break; }
+                case sf::Keyboard::Escape : w.close(); break;
+
+                default : break; }
 
             if ( event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left ) {
 
-                curpos =  sf::Mouse::getPosition(w);
+                sf::Vector2i curpos =  sf::Mouse::getPosition(w);
 
                 xx = ( xa / 2 - curpos.x ) / de; yy = ( ya / 2 - curpos.y ) / de;
                 xx -= ( xx * 2 ) - px; yy -= ( yy * 2 ) - py; px = xx; py = yy;
