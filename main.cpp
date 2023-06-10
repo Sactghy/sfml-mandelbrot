@@ -32,6 +32,49 @@ struct Cmplex { double ma, mb;
 
 };
 
+void blur( thP pd )
+{
+  int yn1 = ( pd.y1 == 0 ) ? 1 : pd.y1;
+
+  for ( int x = 1; x < xa-1; x++ ) { for ( int y = yn1; y < pd.y2; y++ ) {
+
+                int p = ( ( y * xa ) + x ) * 4, pt;
+
+                double r0 = static_cast<double>(dt[p+0]), res{};
+
+                pt = ( ( ( y - 0 ) * xa ) + ( x - 1 ) ) * 4;
+
+                res += static_cast<double>(dt[pt+0]);
+                pt = ( ( ( y - 1 ) * xa ) + ( x - 1 ) ) * 4;
+
+                res += static_cast<double>(dt[pt+0]);
+                pt = ( ( ( y + 1 ) * xa ) + ( x - 1 ) ) * 4;
+
+                res += static_cast<double>(dt[pt+0]);
+                pt = ( ( ( y - 1 ) * xa ) + ( x - 0 ) ) * 4;
+
+                res += static_cast<double>(dt[pt+0]);
+                pt = ( ( ( y + 1 ) * xa ) + ( x - 0 ) ) * 4;
+
+                res += static_cast<double>(dt[pt+0]);
+                pt = ( ( ( y + 0 ) * xa ) + ( x + 1 ) ) * 4;
+
+                res += static_cast<double>(dt[pt+0]);
+                pt = ( ( ( y - 1 ) * xa ) + ( x + 1 ) ) * 4;
+
+                res += static_cast<double>(dt[pt+0]);
+                pt = ( ( ( y + 1 ) * xa ) + ( x + 1 ) ) * 4;
+
+                res += static_cast<double>(dt[pt+0]);
+
+                r0 *= 0.876; res *= 0.123;
+                unsigned char red = r0 + res; if ( red > 148 ) red = 148;
+
+                dt0[p+0] = red; dt0[p+1] = dt[p+1]; dt0[p+2] = dt[p+2]; dt0[p+3] = 255;
+
+                } }
+}
+
 const int xc = xa / 2, yc = ya / 2;
 void outPut( thP pd ) {
 
@@ -49,20 +92,22 @@ void outPut( thP pd ) {
 
         unsigned char i = 0; double m;
 
-        while ( i < 69 ) { i++; z.square(); z.add(&c); m = z.magnitude(); if ( m > 10.0 ) break; }
+        while ( i < 99 ) { i++; z.square(); z.add(&c); m = z.magnitude(); if ( m > 10.0 ) break; }
 
-       if ( i < 69 ) { m *= 0.01;
+       if ( i < 99 ) { m *= 0.01;
+
+
 
            double
                    r = (unsigned char) i + tan( m * z.ma / b ) / ( ( sin ( z.mb ) ) ),
-                   g = (unsigned char)(double)( !i | i * 16 ) * acos ( m * 0.39 ) ,
+                   g = (unsigned char)(double)( ! i | i * 16 ) * acos ( m * 0.39 ) ,
                    b = (unsigned char)(((double)i * 8 ) * atan ( z.mb * z.ma / ( 0.00001 * m ) )) >> 1;
 
-        dt0[p+0] = r;
-        dt0[p+1] = g;
-        dt0[p+2] = b;
+        dt[p+0] = r;
+        dt[p+1] = g;
+        dt[p+2] = b;
 
-        } else { dt0[p] = 0; dt0[p+1] = 0; dt0[p+2] = 0; }
+        } else { dt[p] = 0; dt[p+1] = 0; dt[p+2] = 0; }
 
     } }
 }
@@ -132,7 +177,16 @@ int main()
           for ( int i = 0; i < num_threads; i++ )
           { tcoll[i]->join(); delete tcoll[i]; }
 
-          tcoll.clear(); bpress = 0;
+          tcoll.clear();
+
+          for ( int i = 0; i < num_threads; i++ )
+          { th = new std::thread { blur, p[i] }; tcoll.push_back(th); }
+
+          for ( int i = 0; i < num_threads; i++ )
+          { tcoll[i]->join(); delete tcoll[i]; }
+
+          tcoll.clear();
+          bpress = 0;
 
         }
 
