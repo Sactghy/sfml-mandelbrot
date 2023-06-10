@@ -7,10 +7,10 @@
 #include <cmath>
 #include <thread>
 
-unsigned char *dt, *dt0;
+unsigned char *dt0;
 double de = 1.0, ad = 0.00000000000001, kk = 0.0264;
-double xx = 0.0, yy = -100.0, xm = 0.0, ym = 0.0;
-const int xa = 842, ya = 620;
+double xx = 0.0, yy = -100.0;
+const double xa = 842, ya = 620;
 
 double lerp( double a, double b, double t )
 { return  a * ( 1 - sin(t) ) + b * cos(t); }
@@ -32,50 +32,6 @@ struct Cmplex { double ma, mb;
 
 };
 
-void blur( thP pd )
-{
-  int yn1 = ( pd.y1 == 0 ) ? 1 : pd.y1;
-
-  for ( int x = 1; x < xa-1; x++ ) { for ( int y = yn1; y < pd.y2; y++ ) {
-
-                int p = ( ( y * xa ) + x ) * 4, pt;
-
-                double r0 = static_cast<double>(dt[p+0]), res{};
-
-                pt = ( ( ( y - 0 ) * xa ) + ( x - 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y - 1 ) * xa ) + ( x - 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y + 1 ) * xa ) + ( x - 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y - 1 ) * xa ) + ( x - 0 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y + 1 ) * xa ) + ( x - 0 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y + 0 ) * xa ) + ( x + 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y - 1 ) * xa ) + ( x + 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-                pt = ( ( ( y + 1 ) * xa ) + ( x + 1 ) ) * 4;
-
-                res += static_cast<double>(dt[pt+0]);
-
-                r0 *= 0.876; res *= 0.123;
-                unsigned char red = r0 + res; if ( red > 148 ) red = 148;
-
-                dt0[p+0] = red; dt0[p+1] = dt[p+1]; dt0[p+2] = dt[p+2]; dt0[p+3] = 255;
-
-                } }
-}
-
-const int xc = xa / 2, yc = ya / 2;
 void outPut( thP pd ) {
 
     for ( int x = 0; x <= xa; x++ ) { for ( int y = pd.y1; y <= pd.y2; y++) {
@@ -83,31 +39,32 @@ void outPut( thP pd ) {
         int p = ( ( xa * y ) + x ) * 4;
 
         double xq = (double)x  / de, yq = (double)y / de,
-               a = ( xq + xm + xx - ( ( xa / de ) / 2 ) ) / ( xa / 4.0 ),
-               b = ( yq + ym + yy - ( ( ya / de ) / 2 ) ) / ( ya / 4.0 );
+               aa = ( xq + xx - ( ( xa / de ) / 2 ) ) / ( xa / 4.0 ),
+               bb = ( yq + yy - ( ( ya / de ) / 2 ) ) / ( ya / 4.0 );
 
         struct Cmplex c, z;
-        c.ma = a; c.mb = b;
+        c.ma = aa; c.mb = bb;
         z.ma = 0.0; z.mb = 0.0;
 
-        unsigned char i = 0; double m;
+        unsigned char i = 0; double m, r, g, b;
 
-        while ( i < 99 ) { i++; z.square(); z.add(&c); m = z.magnitude(); if ( m > 10.0 ) break; }
+        while ( i < 99 ) { i++; z.square(); z.add(&c); m = z.magnitude(); if ( m > 13.0 ) break; }
 
        if ( i < 99 ) { m *= 0.01;
 
+                   r = (unsigned char)(( i + tan( m * z.ma / bb ) / ( ( sin ( z.mb ) ) ) ) * 0.5);
+                   g = (unsigned char)(((unsigned char)(double)( ! i | i * 16 ) * acos ( m * 0.39 )));
+                   b = (unsigned char)(((unsigned char)(((double)i * 8 ) * atan ( z.mb * z.ma / ( 0.00001 * m ) )) >> 1));
 
+    r *= ( 1 - double(r) / 255 ); r += r;
+    g *= ( 1 - double(g) / 255 ); g += g;
+    b *= ( 1 - double(b) / 255 ); b += b;
 
-           double
-                   r = (unsigned char) i + tan( m * z.ma / b ) / ( ( sin ( z.mb ) ) ),
-                   g = (unsigned char)(double)( ! i | i * 16 ) * acos ( m * 0.39 ) ,
-                   b = (unsigned char)(((double)i * 8 ) * atan ( z.mb * z.ma / ( 0.00001 * m ) )) >> 1;
+        dt0[p+0] = r;
+        dt0[p+1] = g;
+        dt0[p+2] = b;
 
-        dt[p+0] = r;
-        dt[p+1] = g;
-        dt[p+2] = b;
-
-        } else { dt[p] = 0; dt[p+1] = 0; dt[p+2] = 0; }
+        } else { dt0[p] = 0; dt0[p+1] = 0; dt0[p+2] = 0; }
 
     } }
 }
@@ -137,7 +94,6 @@ int main()
     w.setPosition( { static_cast<int>( ( dm.width / 2 ) - xa / 2 ),
                      static_cast<int>( ( dm.height/ 2 ) - ya / 2 ) } );
 
-
     sf::Texture img; if ( !img.create(xa, ya) ) std::cout << "Img error!" << std::endl;
 
     sf::Sprite spr; spr.setTextureRect(sf::IntRect(0, 0, xa, ya));
@@ -145,8 +101,8 @@ int main()
     spr.setTexture(img); spr.setPosition(-1,0);
 
 
-    dt = new unsigned char [xa*(ya+2)*4]{}; dt0 = new unsigned char [xa*(ya+2)*4]{}; Timer t;
-    for ( int n = 0; n <= xa*ya*4; n += 4 ) { dt0[n+3] = 255; dt[n+3] = 255; }
+    dt0 = new unsigned char [(int)xa*((int)ya+2)*4]{};
+    for ( int n = 0; n <= xa*ya*4; n += 4 ) dt0[n+3] = 255;
 
     int bpress = 1, isout = 0, isin = 0, num_threads = std::thread::hardware_concurrency();
 
@@ -166,6 +122,7 @@ int main()
 
         if ( i == num_threads - 1 ) p[i].y2 = ya; else p[i].y2 = z; }
 
+    Timer t;
 
     while ( w.isOpen() )  { sf::Event event; if ( t.elapsed() > waittime ) { t.reset();
 
@@ -177,16 +134,7 @@ int main()
           for ( int i = 0; i < num_threads; i++ )
           { tcoll[i]->join(); delete tcoll[i]; }
 
-          tcoll.clear();
-
-          for ( int i = 0; i < num_threads; i++ )
-          { th = new std::thread { blur, p[i] }; tcoll.push_back(th); }
-
-          for ( int i = 0; i < num_threads; i++ )
-          { tcoll[i]->join(); delete tcoll[i]; }
-
-          tcoll.clear();
-          bpress = 0;
+          tcoll.clear(); bpress = 0;
 
         }
 
@@ -223,7 +171,7 @@ int main()
         } }
     }
 
-    delete[] dt; delete[] dt0;
+    delete[] dt0;
 
     return 0;
 }
