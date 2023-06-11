@@ -56,9 +56,9 @@ void outPut( thP pd ) {
                    g = (unsigned char)(((unsigned char)(double)( ! i | i * 16 ) * acos ( m * 0.39 )));
                    b = (unsigned char)(((unsigned char)(((double)i * 8 ) * atan ( z.mb * z.ma / ( 0.00001 * m ) )) >> 1));
 
-    r *= ( 1 - double(r) / 255 ); r += r;
-    g *= ( 1 - double(g) / 255 ); g += g;
-    b *= ( 1 - double(b) / 255 ); b += b;
+    r *= ( 1 - double(r) / 255 ); r += r * 1.3;
+    g *= ( 1 - double(g) / 255 ); g += g * 1.1;
+    b *= ( 1 - double(b) / 255 ); b += b * 1.3;
 
         dt0[p+0] = r;
         dt0[p+1] = g;
